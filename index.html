@@ -1,0 +1,488 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#ea580c">
+<meta name="color-scheme" content="light">
+<meta name="description" content="Clock, stopwatch, timer and a calendar with reminders up to 2099.">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>MHS Date &amp; Time</title>
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+:root{
+  --orange:#ea580c; --orange-d:#c2410c; --tint:#fff1e8; --ink:#1d1d1f; --soft:#6b7280;
+  --line:#e8eaee; --bg:#f5f6f8; --card:#ffffff; --hol:#d8ecff; --holtext:#1c4f82; --bad:#c62828;
+  --shadow:0 1px 2px rgba(0,0,0,.05), 0 8px 24px rgba(20,20,40,.06);
+}
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+html,body{margin:0}
+body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif; background:var(--bg); color:var(--ink); min-height:100vh;
+  -webkit-user-select:none; user-select:none; -webkit-touch-callout:none; overscroll-behavior-y:contain; line-height:1.4}
+input,textarea,select{-webkit-user-select:text; user-select:text; font:inherit; color:inherit}
+button{font:inherit; color:inherit; cursor:pointer; touch-action:manipulation}
+:focus-visible{outline:3px solid var(--orange); outline-offset:2px}
+[hidden]{display:none!important}
+.app{max-width:640px; margin:0 auto; padding:calc(12px + env(safe-area-inset-top)) 14px calc(96px + env(safe-area-inset-bottom))}
+.top{display:flex; align-items:center; gap:10px; margin-bottom:14px}
+.logo{background:var(--orange); color:#fff; font-weight:800; font-size:.8rem; letter-spacing:.06em; padding:7px 10px; border-radius:10px}
+h1{font-size:1.3rem; margin:0; font-weight:800}
+h2{font-size:1.05rem; margin:0 0 12px}
+.card{background:var(--card); border-radius:18px; padding:18px; box-shadow:var(--shadow); margin-bottom:14px}
+.row{display:flex; flex-wrap:wrap; gap:10px; align-items:center}
+.btn{border:0; background:var(--orange-d); color:#fff; font-weight:700; padding:12px 18px; border-radius:12px; min-height:48px}
+.btn.ghost{background:var(--tint); color:var(--orange-d)}
+.btn.danger{background:#fdeaea; color:var(--bad)}
+.btn:disabled{opacity:.4; cursor:not-allowed}
+.btn:active:not(:disabled){transform:scale(.97)}
+.hint{color:var(--soft); font-size:.85rem; margin:10px 0 0}
+
+/* clock */
+.hero{background:linear-gradient(135deg,#ea580c,#c2410c); color:#fff}
+.lbl{font-size:.8rem; font-weight:700; letter-spacing:.08em; text-transform:uppercase; opacity:.85; margin-bottom:8px}
+.lbl.dark{color:var(--soft); opacity:1}
+.big{font-variant-numeric:tabular-nums; font-size:clamp(2.4rem,12.5vw,4.2rem); font-weight:800; letter-spacing:-.02em; line-height:1.05}
+.ampm{font-size:.4em; font-weight:800; color:var(--orange-d); letter-spacing:.04em; margin-left:4px}
+.dateline{color:var(--soft); margin-top:10px; font-weight:600}
+.adj{display:flex; align-items:flex-end; gap:8px; margin-bottom:14px; flex-wrap:wrap}
+.adj label{display:flex; flex-direction:column; font-size:.8rem; color:var(--soft); gap:4px; font-weight:600}
+.adj input{width:84px; font-size:1.5rem; font-weight:700; text-align:center; padding:8px; border:2px solid var(--line); border-radius:12px; background:#fff}
+.colon{font-size:1.6rem; font-weight:800; padding-bottom:10px}
+.seg{display:inline-flex; background:var(--tint); border-radius:12px; padding:4px; margin-left:4px}
+.seg button{border:0; background:transparent; font-weight:800; padding:12px 16px; border-radius:9px; color:var(--orange-d)}
+.seg button[aria-pressed="true"]{background:var(--orange-d); color:#fff}
+
+/* stopwatch + timer */
+.disp{text-align:center; padding:10px 0 18px}
+.disp .big{font-size:clamp(2.8rem,14vw,4.6rem)}
+.cs{font-size:.5em; color:var(--soft); font-weight:700}
+.ctl{display:grid; grid-template-columns:1fr 1fr; gap:10px}
+.ctl .btn{min-height:58px; font-size:1.05rem}
+.laps{list-style:none; margin:14px 0 0; padding:0; max-height:300px; overflow:auto}
+.laps li{display:flex; justify-content:space-between; gap:8px; padding:10px 4px; border-top:1px solid var(--line); font-variant-numeric:tabular-nums}
+.laps b{color:var(--orange-d)} .laps span{color:var(--soft)}
+.chips{display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; justify-content:center}
+.chip{border:2px solid var(--line); background:#fff; border-radius:999px; padding:10px 18px; font-weight:800; min-height:44px}
+.chip[aria-pressed="true"]{background:var(--orange-d); border-color:var(--orange-d); color:#fff}
+.custom{display:flex; gap:8px; justify-content:center; align-items:center; margin-bottom:14px}
+.custom input{width:92px; padding:10px; border:2px solid var(--line); border-radius:12px; text-align:center; font-weight:700; background:#fff}
+.ring{position:relative; width:min(72vw,260px); aspect-ratio:1; margin:0 auto 16px}
+.ring svg{width:100%; height:100%; transform:rotate(-90deg)}
+.ring .track{fill:none; stroke:var(--line); stroke-width:10}
+.ring .prog{fill:none; stroke:var(--orange); stroke-width:10; stroke-linecap:round; transition:stroke-dashoffset .25s linear}
+.ring .mid{position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center}
+.ring .big{font-size:clamp(2.2rem,11vw,3.4rem)}
+.up{color:var(--bad); font-weight:800; min-height:1.4em}
+
+/* calendar */
+.search input{width:100%; padding:13px 14px; border:2px solid var(--line); border-radius:12px; background:#fff}
+.results{margin:10px 0 0; padding:0; list-style:none; max-height:220px; overflow:auto}
+.results li button{width:100%; text-align:left; background:transparent; border:0; border-top:1px solid var(--line); padding:11px 4px; display:flex; flex-direction:column}
+.results .rd{font-weight:800; color:var(--orange-d); font-size:.9rem}
+.results .rt{color:var(--soft); overflow-wrap:anywhere}
+.calhead{display:flex; gap:6px; align-items:center; margin-bottom:12px}
+.calhead select{flex:1; min-width:0; padding:10px 8px; border:2px solid var(--line); border-radius:12px; background:#fff; font-weight:700}
+.calhead .btn{min-width:46px; padding:8px 12px}
+.dow,.days{display:grid; grid-template-columns:repeat(7,1fr); gap:4px}
+.dow div{text-align:center; font-size:.75rem; font-weight:800; color:var(--soft); padding:4px 0}
+.dow .h{color:var(--holtext)}
+.d{position:relative; aspect-ratio:1; border:0; background:#f8f9fb; border-radius:12px; display:flex; align-items:center; justify-content:center; padding:0; font-weight:700}
+.d.hol{background:var(--hol); color:var(--holtext)}
+.d .n{width:78%; aspect-ratio:1; border-radius:50%; display:flex; align-items:center; justify-content:center}
+.d.today .n{background:var(--orange); color:#fff; font-weight:800}
+.d.sel{box-shadow:inset 0 0 0 2.5px var(--orange-d)}
+.d.note::after{content:""; position:absolute; bottom:5px; width:5px; height:5px; border-radius:50%; background:var(--orange-d)}
+.d.today.note::after{background:#fff; bottom:9px}
+.legend{display:flex; gap:14px; flex-wrap:wrap; font-size:.78rem; color:var(--soft); margin-top:12px}
+.legend i{display:inline-block; width:12px; height:12px; border-radius:50%; margin-right:5px; vertical-align:-1px}
+.dptitle{font-weight:800; font-size:1.05rem; margin-bottom:8px}
+.dpnote{white-space:pre-wrap; overflow-wrap:anywhere; margin:0 0 14px; color:var(--ink)}
+.dpnote.empty{color:var(--soft)}
+textarea{width:100%; padding:12px; border:2px solid var(--line); border-radius:12px; background:#fff; resize:vertical; margin-bottom:12px}
+
+/* nav + toast + modal */
+nav{position:fixed; left:0; right:0; bottom:0; z-index:20; background:#fff; border-top:1px solid var(--line);
+  padding:6px 8px calc(6px + env(safe-area-inset-bottom)); box-shadow:0 -6px 20px rgba(20,20,40,.06)}
+nav .in{max-width:640px; margin:0 auto; display:flex; gap:4px}
+nav button{flex:1; border:0; background:transparent; padding:8px 2px; border-radius:12px; display:flex; flex-direction:column; align-items:center; gap:2px; font-size:.72rem; font-weight:700; color:var(--soft)}
+nav button[aria-selected="true"]{background:var(--tint); color:var(--orange-d)}
+nav svg{width:24px; height:24px; fill:none; stroke:currentColor; stroke-width:1.8; stroke-linecap:round; stroke-linejoin:round}
+.toast{position:fixed; left:50%; bottom:calc(86px + env(safe-area-inset-bottom)); transform:translateX(-50%); background:var(--ink); color:#fff; padding:11px 18px; border-radius:12px; font-weight:700; z-index:40; max-width:calc(100% - 28px); text-align:center}
+.modal{position:fixed; inset:0; background:rgba(15,15,30,.5); display:flex; align-items:center; justify-content:center; z-index:50; padding:20px}
+.sheet{background:#fff; border-radius:18px; padding:20px; max-width:340px; width:100%}
+.sheet p{margin:0 0 16px; font-weight:700}
+.sheet .row{justify-content:flex-end}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+@media (max-width:380px){ .adj input{width:70px} .seg button{padding:12px 12px} }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="top"><span class="logo">MHS</span><h1>Date &amp; Time</h1></header>
+
+  <!-- CLOCK -->
+  <section id="tab-clock">
+    <div class="card hero">
+      <div class="lbl">24-hour clock</div>
+      <div class="big" id="c24">00:00:00</div>
+    </div>
+    <div class="card">
+      <div class="lbl dark">12-hour clock</div>
+      <div class="big"><span id="c12">12:00:00</span><span class="ampm" id="cap">AM</span></div>
+      <div class="dateline" id="clockDate"></div>
+    </div>
+    <div class="card">
+      <h2>Adjust time</h2>
+      <div class="adj">
+        <label>Hour<input id="aH" type="number" inputmode="numeric" min="1" max="12"></label>
+        <span class="colon">:</span>
+        <label>Minute<input id="aM" type="number" inputmode="numeric" min="0" max="59"></label>
+        <div class="seg" id="aAP" role="group" aria-label="AM or PM">
+          <button data-ap="AM" aria-pressed="true">AM</button>
+          <button data-ap="PM" aria-pressed="false">PM</button>
+        </div>
+      </div>
+      <div class="row">
+        <button class="btn" id="setTime">Set time</button>
+        <button class="btn ghost" id="resetTime">Use phone time</button>
+      </div>
+      <p class="hint" id="adjNote"></p>
+    </div>
+  </section>
+
+  <!-- STOPWATCH -->
+  <section id="tab-stopwatch" hidden>
+    <div class="card">
+      <div class="disp"><div class="big"><span id="swMain">00:00</span><span class="cs" id="swCs">.00</span></div></div>
+      <div class="ctl">
+        <button class="btn" id="swStart">Start</button>
+        <button class="btn" id="swStop">Stop</button>
+        <button class="btn ghost" id="swLap">Lap</button>
+        <button class="btn ghost" id="swReset">Reset</button>
+      </div>
+      <ul class="laps" id="laps"></ul>
+    </div>
+  </section>
+
+  <!-- TIMER -->
+  <section id="tab-timer" hidden>
+    <div class="card">
+      <div class="chips" id="chips">
+        <button class="chip" data-min="1" aria-pressed="false">1 min</button>
+        <button class="chip" data-min="3" aria-pressed="false">3 min</button>
+        <button class="chip" data-min="5" aria-pressed="true">5 min</button>
+        <button class="chip" data-min="10" aria-pressed="false">10 min</button>
+      </div>
+      <div class="custom">
+        <input id="tmCustom" type="number" inputmode="numeric" min="1" max="600" placeholder="Minutes" aria-label="Custom minutes">
+        <button class="btn ghost" id="tmSetCustom">Set</button>
+      </div>
+      <div class="ring">
+        <svg viewBox="0 0 240 240" aria-hidden="true"><circle class="track" cx="120" cy="120" r="108"/><circle class="prog" id="prog" cx="120" cy="120" r="108"/></svg>
+        <div class="mid"><div class="big" id="tmText">5:00</div></div>
+      </div>
+      <div class="up" id="tmUp" style="text-align:center"></div>
+      <div class="ctl" style="margin-top:8px">
+        <button class="btn" id="tmGo">Start</button>
+        <button class="btn ghost" id="tmReset">Reset</button>
+      </div>
+      <p class="hint" style="text-align:center">Keep the app open so the alarm can sound.</p>
+    </div>
+  </section>
+
+  <!-- CALENDAR -->
+  <section id="tab-calendar" hidden>
+    <div class="card search">
+      <input id="q" type="search" placeholder="Search your reminders…" aria-label="Search reminders" autocomplete="off">
+      <ul class="results" id="results"></ul>
+    </div>
+    <div class="card" id="calCard">
+      <div class="calhead">
+        <button class="btn ghost" id="cPrev" aria-label="Previous month">‹</button>
+        <select id="cMonth" aria-label="Month"></select>
+        <select id="cYear" aria-label="Year"></select>
+        <button class="btn ghost" id="cNext" aria-label="Next month">›</button>
+      </div>
+      <div class="dow" id="dow"></div>
+      <div class="days" id="days"></div>
+      <div class="legend">
+        <span><i style="background:var(--orange)"></i>Today</span>
+        <span><i style="background:var(--hol)"></i>Friday and Saturday (holiday)</span>
+        <span><i style="background:var(--orange-d);width:6px;height:6px;vertical-align:2px"></i>Has reminder</span>
+      </div>
+      <div class="row" style="margin-top:12px"><button class="btn ghost" id="cToday">Go to today</button></div>
+    </div>
+    <div class="card" id="dayPanel">
+      <div class="dptitle" id="dpTitle"></div>
+      <div id="dpView">
+        <p class="dpnote" id="dpNote"></p>
+        <button class="btn" id="dpEdit">Edit</button>
+      </div>
+      <div id="dpEditBox" hidden>
+        <textarea id="dpText" rows="4" maxlength="500" placeholder="Write your reminder…" aria-label="Reminder"></textarea>
+        <div class="row">
+          <button class="btn" id="dpSave">Save</button>
+          <button class="btn ghost" id="dpCancel">Cancel</button>
+          <button class="btn danger" id="dpDel">Delete</button>
+        </div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<nav aria-label="Main">
+  <div class="in" role="tablist">
+    <button role="tab" aria-selected="true" data-tab="clock"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>Clock</button>
+    <button role="tab" aria-selected="false" data-tab="stopwatch"><svg viewBox="0 0 24 24"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2 1M9 2h6M12 2v3"/></svg>Stopwatch</button>
+    <button role="tab" aria-selected="false" data-tab="timer"><svg viewBox="0 0 24 24"><path d="M6 3h12M6 21h12M7 3c0 5 5 6 5 9s-5 4-5 9M17 3c0 5-5 6-5 9s5 4 5 9"/></svg>Timer</button>
+    <button role="tab" aria-selected="false" data-tab="calendar"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="3"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>Calendar</button>
+  </div>
+</nav>
+
+<div class="modal" id="modal" hidden role="dialog" aria-modal="true" aria-labelledby="modalMsg">
+  <div class="sheet">
+    <p id="modalMsg"></p>
+    <div class="row"><button class="btn ghost" id="mNo">Cancel</button><button class="btn danger" id="mYes">OK</button></div>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const $ = id => document.getElementById(id);
+const p2 = n => String(n).padStart(2,'0');
+
+/* ===== storage ===== */
+const LS = 'mhsDateTimeV1';
+let store = {offset:0, notes:{}};
+try { Object.assign(store, JSON.parse(localStorage.getItem(LS)) || {}) } catch(e){}
+function save(){ try{ localStorage.setItem(LS, JSON.stringify(store)) }catch(e){} }
+
+/* ===== toast + dialog ===== */
+let toastTimer;
+function toast(msg){ const t=$('toast'); t.textContent=msg; t.hidden=false; clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.hidden=true,2800) }
+function ask(msg,label){
+  return new Promise(res=>{
+    const m=$('modal'); $('modalMsg').textContent=msg; $('mYes').textContent=label||'OK'; m.hidden=false; $('mNo').focus();
+    const done=v=>{ m.hidden=true; $('mYes').onclick=null; $('mNo').onclick=null; m.onclick=null; res(v) };
+    $('mYes').onclick=()=>done(true); $('mNo').onclick=()=>done(false);
+    m.onclick=e=>{ if(e.target===m) done(false) };
+  });
+}
+document.addEventListener('keydown',e=>{ if(e.key==='Escape' && !$('modal').hidden) $('mNo').click() });
+
+/* ===== CLOCK ===== */
+const nowAdj = () => new Date(Date.now() + (store.offset||0));
+function tickClock(){
+  const d=nowAdj(), h=d.getHours(), m=d.getMinutes(), s=d.getSeconds();
+  $('c24').textContent = p2(h)+':'+p2(m)+':'+p2(s);
+  $('c12').textContent = (h%12||12)+':'+p2(m)+':'+p2(s);
+  $('cap').textContent = h<12 ? 'AM' : 'PM';
+  $('clockDate').textContent = d.toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
+}
+let ap='AM';
+function setAP(v){ ap=v; document.querySelectorAll('#aAP button').forEach(b=>b.setAttribute('aria-pressed', b.dataset.ap===v)) }
+document.querySelectorAll('#aAP button').forEach(b=>b.onclick=()=>setAP(b.dataset.ap));
+function fillAdjust(){
+  const d=nowAdj(); $('aH').value=d.getHours()%12||12; $('aM').value=p2(d.getMinutes()); setAP(d.getHours()<12?'AM':'PM');
+  $('adjNote').textContent = store.offset ? 'The clock is using the time you set. Tap “Use phone time” to go back.' : 'The clock is using your phone’s time.';
+}
+$('setTime').onclick=()=>{
+  const h=parseInt($('aH').value), m=parseInt($('aM').value);
+  if(!(h>=1&&h<=12)){ toast('Hour must be 1 to 12.'); return }
+  if(!(m>=0&&m<=59)){ toast('Minute must be 0 to 59.'); return }
+  const t=new Date(); t.setHours((h%12)+(ap==='PM'?12:0), m, 0, 0);
+  store.offset = t.getTime()-Date.now(); save(); tickClock(); fillAdjust(); toast('Time set.');
+};
+$('resetTime').onclick=()=>{ store.offset=0; save(); tickClock(); fillAdjust(); toast('Using phone time.') };
+setInterval(tickClock,250);
+
+/* ===== STOPWATCH ===== */
+const sw={run:false,start:0,base:0,laps:[],raf:0};
+const swNow=()=>sw.base+(sw.run?Date.now()-sw.start:0);
+function fmtSw(ms){
+  const cs=Math.floor(ms/10)%100, t=Math.floor(ms/1000), s=t%60, m=Math.floor(t/60)%60, h=Math.floor(t/3600);
+  return {main:(h?h+':'+p2(m):p2(m))+':'+p2(s), cs:'.'+p2(cs), full:(h?h+':':'')+p2(m)+':'+p2(s)+'.'+p2(cs)};
+}
+function renderSwTime(){ const f=fmtSw(swNow()); $('swMain').textContent=f.main; $('swCs').textContent=f.cs }
+function renderSwBtns(){
+  $('swStart').disabled=sw.run; $('swStop').disabled=!sw.run; $('swLap').disabled=!sw.run;
+  $('swReset').disabled=sw.run || (swNow()===0 && !sw.laps.length);
+}
+function renderLaps(){
+  const ul=$('laps'); ul.textContent='';
+  sw.laps.forEach(l=>{
+    const li=document.createElement('li');
+    const a=document.createElement('b'); a.textContent='Lap '+l.n;
+    const b=document.createElement('strong'); b.textContent=fmtSw(l.lap).full;
+    const c=document.createElement('span'); c.textContent=fmtSw(l.total).full;
+    li.append(a,b,c); ul.appendChild(li);
+  });
+}
+function swLoop(){ renderSwTime(); if(sw.run) sw.raf=requestAnimationFrame(swLoop) }
+$('swStart').onclick=()=>{ sw.run=true; sw.start=Date.now(); swLoop(); renderSwBtns() };
+$('swStop').onclick=()=>{ sw.base+=Date.now()-sw.start; sw.run=false; cancelAnimationFrame(sw.raf); renderSwTime(); renderSwBtns() };
+$('swLap').onclick=()=>{
+  const total=swNow(), prev=sw.laps.length?sw.laps[0].total:0;
+  sw.laps.unshift({n:sw.laps.length+1, lap:total-prev, total}); renderLaps();
+};
+$('swReset').onclick=()=>{ sw.base=0; sw.laps=[]; renderSwTime(); renderLaps(); renderSwBtns() };
+
+/* ===== TIMER ===== */
+const tm={total:300000,rem:300000,run:false,end:0,iv:0,ringing:false,ringIv:0};
+const CIRC=2*Math.PI*108;
+let ac;
+function ensureAudio(){ try{ ac=ac||new (window.AudioContext||window.webkitAudioContext)(); if(ac.state==='suspended') ac.resume() }catch(e){} }
+function beep(){
+  if(!ac) return;
+  const o=ac.createOscillator(), g=ac.createGain(), t=ac.currentTime;
+  o.type='sine'; o.frequency.value=880;
+  g.gain.setValueAtTime(.0001,t); g.gain.exponentialRampToValueAtTime(.35,t+.02); g.gain.exponentialRampToValueAtTime(.0001,t+.4);
+  o.connect(g); g.connect(ac.destination); o.start(t); o.stop(t+.45);
+}
+function ring(){
+  tm.ringing=true; let n=0;
+  const go=()=>{ beep(); if(navigator.vibrate) navigator.vibrate([200,100,200]); if(++n>=40){ stopRing(); renderTm() } };
+  go(); tm.ringIv=setInterval(go,800);
+}
+function stopRing(){ tm.ringing=false; clearInterval(tm.ringIv); if(navigator.vibrate) navigator.vibrate(0) }
+function fmtTm(ms){
+  const t=Math.ceil(ms/1000), s=t%60, m=Math.floor(t/60)%60, h=Math.floor(t/3600);
+  return h ? h+':'+p2(m)+':'+p2(s) : Math.floor(t/60)+':'+p2(s);
+}
+function renderTm(){
+  $('tmText').textContent=fmtTm(tm.rem);
+  $('prog').style.strokeDasharray=CIRC;
+  $('prog').style.strokeDashoffset=CIRC*(1-(tm.total?tm.rem/tm.total:0));
+  $('tmGo').textContent = tm.run ? 'Pause' : (tm.rem>0 && tm.rem<tm.total ? 'Resume' : 'Start');
+  $('tmGo').disabled = tm.rem<=0;
+  $('tmReset').textContent = tm.ringing ? 'Stop alarm' : 'Reset';
+  $('tmUp').textContent = tm.ringing ? 'Time’s up!' : '';
+}
+function tickTm(){
+  if(!tm.run) return;
+  tm.rem=Math.max(0,tm.end-Date.now());
+  if(tm.rem===0){ tm.run=false; clearInterval(tm.iv); ring() }
+  renderTm();
+}
+function chooseTimer(ms){
+  stopRing(); clearInterval(tm.iv); tm.run=false; tm.total=ms; tm.rem=ms;
+  document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed', parseInt(c.dataset.min)*60000===ms));
+  renderTm();
+}
+document.querySelectorAll('.chip').forEach(c=>c.onclick=()=>chooseTimer(parseInt(c.dataset.min)*60000));
+$('tmSetCustom').onclick=()=>{
+  const m=parseInt($('tmCustom').value);
+  if(!(m>=1&&m<=600)){ toast('Enter 1 to 600 minutes.'); return }
+  chooseTimer(m*60000);
+};
+$('tmGo').onclick=()=>{
+  if(tm.run){ tm.rem=Math.max(0,tm.end-Date.now()); tm.run=false; clearInterval(tm.iv); renderTm(); return }
+  if(tm.rem<=0) return;
+  ensureAudio(); tm.run=true; tm.end=Date.now()+tm.rem; clearInterval(tm.iv); tm.iv=setInterval(tickTm,200); renderTm();
+};
+$('tmReset').onclick=()=>{ stopRing(); clearInterval(tm.iv); tm.run=false; tm.rem=tm.total; renderTm() };
+
+/* ===== CALENDAR ===== */
+const MONTHS=['January','February','March','April','May','June','July','August','September','October','November','December'];
+const MIN_Y=1900, MAX_Y=2099;
+const mkKey=(y,m,d)=>y+'-'+p2(m+1)+'-'+p2(d);
+const todayKey=()=>{ const t=new Date(); return mkKey(t.getFullYear(),t.getMonth(),t.getDate()) };
+const longDate=k=>{ const [y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-GB',{weekday:'long',day:'numeric',month:'long',year:'numeric'}) };
+const shortDate=k=>{ const [y,m,d]=k.split('-').map(Number); return new Date(y,m-1,d).toLocaleDateString('en-GB',{weekday:'short',day:'numeric',month:'short',year:'numeric'}) };
+const t0=new Date();
+const cal={y:t0.getFullYear(), m:t0.getMonth(), sel:todayKey(), editing:false};
+if(cal.y>MAX_Y){ cal.y=MAX_Y } if(cal.y<MIN_Y){ cal.y=MIN_Y }
+
+MONTHS.forEach((n,i)=>{ const o=document.createElement('option'); o.value=i; o.textContent=n; $('cMonth').appendChild(o) });
+for(let y=MIN_Y;y<=MAX_Y;y++){ const o=document.createElement('option'); o.value=y; o.textContent=y; $('cYear').appendChild(o) }
+['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach((n,i)=>{ const d=document.createElement('div'); d.textContent=n; if(i>=5) d.className='h'; $('dow').appendChild(d) });
+
+function renderCal(){
+  $('cMonth').value=cal.m; $('cYear').value=cal.y;
+  $('cPrev').disabled = cal.y===MIN_Y && cal.m===0;
+  $('cNext').disabled = cal.y===MAX_Y && cal.m===11;
+  const box=$('days'); box.textContent='';
+  const first=new Date(cal.y,cal.m,1).getDay(), count=new Date(cal.y,cal.m+1,0).getDate(), tk=todayKey();
+  for(let i=0;i<first;i++) box.appendChild(document.createElement('div'));
+  for(let d=1;d<=count;d++){
+    const k=mkKey(cal.y,cal.m,d), col=(first+d-1)%7;
+    const b=document.createElement('button'); b.type='button';
+    b.className='d'+(col>=5?' hol':'')+(k===tk?' today':'')+(k===cal.sel?' sel':'')+(store.notes[k]?' note':'');
+    b.setAttribute('aria-label', longDate(k)+(store.notes[k]?', has a reminder':'')+(k===tk?', today':''));
+    const n=document.createElement('span'); n.className='n'; n.textContent=d; b.appendChild(n);
+    b.onclick=()=>{ cal.sel=k; cal.editing=false; renderCal(); renderPanel() };
+    box.appendChild(b);
+  }
+}
+function renderPanel(){
+  const k=cal.sel, note=store.notes[k]||'';
+  $('dpTitle').textContent=longDate(k);
+  const n=$('dpNote'); n.textContent = note || 'No reminder for this day.'; n.className='dpnote'+(note?'':' empty');
+  $('dpView').hidden=cal.editing; $('dpEditBox').hidden=!cal.editing;
+  $('dpDel').hidden=!note;
+  if(cal.editing){ $('dpText').value=note; $('dpText').focus() }
+}
+$('dpEdit').onclick=()=>{ cal.editing=true; renderPanel() };
+$('dpCancel').onclick=()=>{ cal.editing=false; renderPanel() };
+$('dpSave').onclick=()=>{
+  const v=$('dpText').value.trim();
+  if(v) store.notes[cal.sel]=v; else delete store.notes[cal.sel];
+  save(); cal.editing=false; renderCal(); renderPanel(); runSearch(); toast(v?'Reminder saved.':'Reminder removed.');
+};
+$('dpDel').onclick=async()=>{
+  if(await ask('Delete the reminder for '+shortDate(cal.sel)+'?','Delete')){
+    delete store.notes[cal.sel]; save(); cal.editing=false; renderCal(); renderPanel(); runSearch(); toast('Reminder deleted.');
+  }
+};
+$('cPrev').onclick=()=>{ cal.m--; if(cal.m<0){ cal.m=11; cal.y-- } renderCal() };
+$('cNext').onclick=()=>{ cal.m++; if(cal.m>11){ cal.m=0; cal.y++ } renderCal() };
+$('cMonth').onchange=e=>{ cal.m=parseInt(e.target.value); renderCal() };
+$('cYear').onchange=e=>{ cal.y=parseInt(e.target.value); renderCal() };
+function goTo(k){
+  const [y,m]=k.split('-').map(Number); cal.y=y; cal.m=m-1; cal.sel=k; cal.editing=false;
+  renderCal(); renderPanel(); $('calCard').scrollIntoView({behavior:'smooth',block:'start'});
+}
+$('cToday').onclick=()=>goTo(todayKey());
+
+function runSearch(){
+  const q=$('q').value.trim().toLowerCase(), ul=$('results'); ul.textContent='';
+  if(!q) return;
+  const hits=Object.keys(store.notes).filter(k=>store.notes[k].toLowerCase().includes(q)).sort().slice(0,30);
+  if(!hits.length){ const li=document.createElement('li'); li.className='hint'; li.textContent='No reminder found.'; ul.appendChild(li); return }
+  hits.forEach(k=>{
+    const li=document.createElement('li'), b=document.createElement('button'); b.type='button';
+    const d=document.createElement('span'); d.className='rd'; d.textContent=shortDate(k);
+    const t=document.createElement('span'); t.className='rt'; const txt=store.notes[k].replace(/\s+/g,' '); t.textContent=txt.length>70?txt.slice(0,70)+'…':txt;
+    b.append(d,t); b.onclick=()=>goTo(k); li.appendChild(b); ul.appendChild(li);
+  });
+}
+$('q').oninput=runSearch;
+
+/* ===== TABS (Android back button goes to the previous tab) ===== */
+const TABS=['clock','stopwatch','timer','calendar'];
+function showTab(t){
+  document.querySelectorAll('nav button').forEach(x=>x.setAttribute('aria-selected', x.dataset.tab===t));
+  TABS.forEach(n=>$('tab-'+n).hidden = n!==t);
+  if(t==='calendar'){ renderCal(); renderPanel() }
+  window.scrollTo(0,0);
+}
+history.replaceState({tab:'clock'},'');
+document.querySelectorAll('nav button').forEach(b=>b.onclick=()=>{
+  const t=b.dataset.tab; if(history.state && history.state.tab===t) return;
+  history.pushState({tab:t},''); showTab(t);
+});
+addEventListener('popstate',e=>showTab((e.state&&e.state.tab)||'clock'));
+document.addEventListener('visibilitychange',()=>{ if(!document.hidden){ tickTm(); tickClock(); if(!$('tab-calendar').hidden) renderCal() } });
+
+/* ===== start ===== */
+tickClock(); fillAdjust(); renderSwTime(); renderSwBtns(); renderLaps(); renderTm(); renderCal(); renderPanel();
+
+if('serviceWorker' in navigator && location.protocol.indexOf('http')===0){
+  addEventListener('load',()=>navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+</script>
+</body>
+</html>
