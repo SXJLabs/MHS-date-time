@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "com.sxjlabs.mhsdatetime",
+        "sha256_cert_fingerprints": ["C8:E8:70:AC:31:34:CB:5D:78:5D:C3:32:45:C3:B5:2F:97:5E:DD:DC:A7:5F:83:D0:26:9F:1D:ED:54:35:D1:69"]
+      }
+    }]
